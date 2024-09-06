@@ -1,0 +1,15 @@
+chart-dirs:
+  - chart
+charts:
+  - chart
+chart-repos:
+  - bitnami=https://charts.bitnami.com/bitnami
+  - keda=https://kedacore.github.io/charts
+remote: origin
+target-branch: main
+validate-chart-schema: true
+validate-chart-values: true
+validate-yaml: true
+exclude-deprecated: true
+validate-maintainers: false
+excluded-charts: []

@@ -1,0 +1,54 @@
+[tool.poetry]
+name = "processing-server"
+version = "0.1.0"
+description = "A server that delivers images through http call"
+authors = [
+    "Hicham Azimani <hicham.azimani1@gmail.com>",
+]
+
+packages = [
+    { include = "app" },
+]
+
+[tool.poetry.dependencies]
+python = "~3.12"
+numpy = "^2.1"
+dynaconf = "^3.2"
+pillow = "^10.4"
+fastapi = "^0.112"
+uvicorn = {extras = ["standard"], version = "^0.30.0"}
+aiofiles = "^24.1"
+requests = "^2.32"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pytest-cov = "5.0.0"
+fastapi = {extras = ["all"], version = "^0.112.0"}
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+preview = true
+line-length = 99
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint]
+extend-select = [
+    "E", # pycodestyle
+    "W", # pycodestyle
+    "F", # pyflakes
+    "N", # pep8-naming
+    "I", # isort
+    "UP", # pyupgrade
+    "B", # bugbear
+    "FURB", # refurb
+]
+
+ignore = [
+    "E501", # Line too long
+    "B008" # Do not perform function calls in argument defaults
+]

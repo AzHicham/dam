@@ -1,0 +1,104 @@
+global:
+  # -- global images registry
+  imageRegistry:
+  # -- global images pull secrets
+  imagePullSecrets: []
+# -- app settings environment variables
+# @default -- see [values.yaml](./values.yaml)
+settings:
+  # -- (string) cache image directory
+  DAMAE_CACHE__DIR: "/data/destra/slides"
+  # -- (string) logging level (debug, info, etc.)
+  DAMAE_LOGGING__LEVEL: "INFO"
+  # -- (string) logging filename ; should be empty except for very specific purpose
+  DAMAE_LOGGING__FILENAME: ""
+  # -- (string) Minio/S3 URL
+  DAMAE_MINIO__URL: ""
+  # -- (string) Bucket where images are stored
+  DAMAE_MINIO__BUCKET: ""
+  # -- (string) User Access key
+  DAMAE_MINIO__ACCESS_KEY: ""
+  # -- (string) User Secret key
+  DAMAE_MINIO__SECRET_KEY: ""
+# -- (int) number of deployment replicas ; if more than 1, set `persistence.accessModes` to `ReadWriteMany` waiting for master/slaves architecture
+replicaCount: 1
+updateStrategy:
+  type: RollingUpdate
+image:
+  registry: ttl.sh
+  repository: imageserver
+  tag: latest
+  pullPolicy: IfNotPresent
+pullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+service:
+  type: ClusterIP
+  port: 80
+podAnnotations: {}
+podSecurityContext: {}
+# fsGroup: 2000
+securityContext: {}
+# capabilities:
+#   drop:
+#   - ALL
+# readOnlyRootFilesystem: true
+# runAsNonRoot: true
+# runAsUser: 1000
+resources:
+  requests:
+    memory: 1Gi
+    cpu: 500m
+  limits:
+    memory: 1Gi
+nodeSelector: {}
+tolerations: []
+affinity: {}
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 5
+  periodSeconds: 30
+  timeoutSeconds: 1
+  failureThreshold: 3
+  successThreshold: 1
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 5
+  periodSeconds: 15
+  timeoutSeconds: 1
+  failureThreshold: 3
+  successThreshold: 1
+# persistence
+persistence:
+  # -- (bool) whether persist slides data ; should always be true
+  enabled: true
+  # -- storage class
+  storageClass: ""
+  # -- access modes that should be `ReadWriteMany`
+  accessModes:
+    - ReadWriteOnce
+  # -- size
+  size: 30Gi
+  # -- claim name if managed outside this chart
+  existingClaim: ""
+  selector: {}
+# ingresses
+ingress:
+  # -- (bool) whether expose Bioformats imageserver through ingresses
+  enabled: false
+  className: "nginx"
+  annotations: {}
+  hosts:
+    - host: damae.imageserver.com
+      paths:
+        - path: "/"
+          pathType: ImplementationSpecific
+          backend:
+            service:
+              name: imageserver
+              port:
+                number: 80
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local

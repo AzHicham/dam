@@ -1,0 +1,62 @@
+volumes:
+  data:
+  cache:
+
+
+services:
+  minio:
+    container_name: minio
+    image: minio/minio
+    ports:
+      - "9001:9001" # WebUI
+      #- "9000:9000" # Only for debugging
+    volumes:
+      - data:/data
+    environment:
+      - MINIO_ROOT_USER=WcZkHqodv1fffytkLe2a
+      - MINIO_ROOT_PASSWORD=1YloZi2W4NnMDPNHVtZhzhx8JYEmeuxQ7AOMRN9a
+    command: server /data --console-address ":9001"
+
+  createusers:
+    image: minio/mc
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc config host add s3 http://minio:9000 WcZkHqodv1fffytkLe2a 1YloZi2W4NnMDPNHVtZhzhx8JYEmeuxQ7AOMRN9a;
+      /usr/bin/mc mb s3/image;
+      exit 0;
+      "
+
+  processingserver:
+    container_name: processingserver
+    depends_on:
+      - imageserver
+    build:
+      context: services/processingserver
+      dockerfile: dockerfiles/Dockerfile
+    ports:
+      - "8081:80"
+    volumes:
+      - cache:/tmp/cache
+    environment:
+      - DAMAE_CACHE__DIR=/tmp/cache
+      - DAMAE_IMAGESERVER__URL=http://imageserver:80
+
+  imageserver:
+    container_name: imageserver
+    depends_on:
+      - minio
+    build:
+      context: services/imageserver
+      dockerfile: dockerfiles/Dockerfile
+    ports:
+      - "8080:80" # Only for debugging
+    volumes:
+      - cache:/tmp/cache
+    environment:
+      - DAMAE_CACHE__DIR=/tmp/cache/retfgdg
+      - DAMAE_MINIO__URL=minio:9000
+      - DAMAE_MINIO__BUCKET=image
+      - DAMAE_MINIO__ACCESS_KEY=WcZkHqodv1fffytkLe2a
+      - DAMAE_MINIO__SECRET_KEY=1YloZi2W4NnMDPNHVtZhzhx8JYEmeuxQ7AOMRN9a

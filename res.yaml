@@ -1,0 +1,472 @@
+---
+# Source: imageserver/charts/minio/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: testing-minio
+  namespace: "hazimani"
+  labels:
+    app.kubernetes.io/instance: testing
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/version: 2024.8.29
+    helm.sh/chart: minio-14.7.5
+automountServiceAccountToken: false
+secrets:
+  - name: testing-minio
+---
+# Source: imageserver/charts/minio/templates/secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: testing-minio
+  namespace: "hazimani"
+  labels:
+    app.kubernetes.io/instance: testing
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/version: 2024.8.29
+    helm.sh/chart: minio-14.7.5
+type: Opaque
+data:
+  root-user: "YWRtaW4="
+  root-password: "NkVsWW9aMG9hZQ=="
+---
+# Source: imageserver/charts/minio/templates/pvc.yaml
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: testing-minio
+  namespace: "hazimani"
+  labels:
+    app.kubernetes.io/instance: testing
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/version: 2024.8.29
+    helm.sh/chart: minio-14.7.5
+spec:
+  accessModes:
+    - "ReadWriteOnce"
+  resources:
+    requests:
+      storage: "8Gi"
+---
+# Source: imageserver/templates/pvc.yaml
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: testing-imageserver-cache
+  namespace: hazimani
+  labels:
+    app.kubernetes.io/name: imageserver
+    helm.sh/chart: imageserver-0.1.0
+    app.kubernetes.io/instance: testing
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "0.1.0"
+spec:
+  accessModes:
+    - "ReadWriteOnce"
+  resources:
+    requests:
+      storage: "30Gi"
+---
+# Source: imageserver/charts/imageserver/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: testing-imageserver
+  namespace: hazimani
+  labels:
+    app.kubernetes.io/name: imageserver
+    helm.sh/chart: imageserver-0.1.0
+    app.kubernetes.io/instance: testing
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "0.1.0"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: imageserver
+    app.kubernetes.io/instance: testing
+---
+# Source: imageserver/charts/minio/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: testing-minio
+  namespace: "hazimani"
+  labels:
+    app.kubernetes.io/instance: testing
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/version: 2024.8.29
+    helm.sh/chart: minio-14.7.5
+spec:
+  type: ClusterIP
+  ports:
+    - name: minio-api
+      port: 9000
+      targetPort: minio-api
+      nodePort: null
+    - name: minio-console
+      port: 9001
+      targetPort: minio-console
+      nodePort: null
+  selector:
+    app.kubernetes.io/instance: testing
+    app.kubernetes.io/name: minio
+---
+# Source: imageserver/charts/processingserver/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: testing-processingserver
+  namespace: hazimani
+  labels:
+    app.kubernetes.io/name: processingserver
+    helm.sh/chart: processingserver-0.1.0
+    app.kubernetes.io/instance: testing
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "0.1.0"
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: processingserver
+    app.kubernetes.io/instance: testing
+---
+# Source: imageserver/charts/imageserver/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: testing-imageserver
+  namespace: hazimani
+  labels:
+    app.kubernetes.io/name: imageserver
+    helm.sh/chart: imageserver-0.1.0
+    app.kubernetes.io/instance: testing
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "0.1.0"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: imageserver
+      app.kubernetes.io/instance: testing
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: imageserver
+        app.kubernetes.io/instance: testing
+    spec:
+      
+      securityContext:
+        {}
+      enableServiceLinks: false
+      containers:
+        - name: imageserver
+          securityContext:
+            {}
+          image: ttl.sh/imageserver:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: DAMAE_CACHE__DIR
+              value: "/tmp/cache"
+            - name: DAMAE_LOGGING__FILENAME
+              value: ""
+            - name: DAMAE_LOGGING__LEVEL
+              value: "INFO"
+            - name: DAMAE_MINIO__ACCESS_KEY
+              value: "WcZkHqodv1fffytkLe2a"
+            - name: DAMAE_MINIO__BUCKET
+              value: "image"
+            - name: DAMAE_MINIO__SECRET_KEY
+              value: "1YloZi2W4NnMDPNHVtZhzhx8JYEmeuxQ7AOMRN9a"
+            - name: DAMAE_MINIO__URL
+              value: "testing-minio:9000"
+          volumeMounts:
+            - mountPath: /tmp/cache
+              name: cache
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /v0/status
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 30
+            timeoutSeconds: 1
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /v0/status
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            timeoutSeconds: 1
+            successThreshold: 1
+            failureThreshold: 3
+          resources:
+            limits:
+              memory: 1Gi
+            requests:
+              cpu: 500m
+              memory: 1Gi
+      volumes:
+        - name: cache
+          persistentVolumeClaim:
+            claimName: testing-cache
+---
+# Source: imageserver/charts/minio/templates/standalone/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: testing-minio
+  namespace: "hazimani"
+  labels:
+    app.kubernetes.io/instance: testing
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/version: 2024.8.29
+    helm.sh/chart: minio-14.7.5
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: testing
+      app.kubernetes.io/name: minio
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: testing
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: minio
+        app.kubernetes.io/version: 2024.8.29
+        helm.sh/chart: minio-14.7.5
+      annotations:
+        checksum/credentials-secret: 17fa08b94fa142d03b269cf931b29686e138627b7d2c770235c5514879a5d8de
+    spec:
+      
+      serviceAccountName: testing-minio
+      affinity:
+        podAffinity:
+          
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/instance: testing
+                    app.kubernetes.io/name: minio
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+        nodeAffinity:
+          
+      automountServiceAccountToken: false
+      securityContext:
+        fsGroup: 1001
+        fsGroupChangePolicy: OnRootMismatch
+        supplementalGroups: []
+        sysctls: []
+      containers:
+        - name: minio
+          image: docker.io/bitnami/minio:2024.8.29-debian-12-r2
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 1001
+            runAsNonRoot: true
+            runAsUser: 1001
+            seLinuxOptions: {}
+            seccompProfile:
+              type: RuntimeDefault
+          env:
+            - name: BITNAMI_DEBUG
+              value: "false"
+            - name: MINIO_SCHEME
+              value: "http"
+            - name: MINIO_FORCE_NEW_KEYS
+              value: "no"
+            - name: MINIO_API_PORT_NUMBER
+              value: "9000"
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: testing-minio
+                  key: root-user
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: testing-minio
+                  key: root-password
+            - name: MINIO_DEFAULT_BUCKETS
+              value: image
+            - name: MINIO_BROWSER
+              value: "on"
+            - name: MINIO_PROMETHEUS_AUTH_TYPE
+              value: "public"
+            - name: MINIO_CONSOLE_PORT_NUMBER
+              value: "9001"
+            - name: MINIO_DATA_DIR
+              value: "/bitnami/minio/data"
+            - name: MINIO_ROOT_USER
+              value: WcZkHqodv1fffytkLe2a
+            - name: MINIO_ROOT_PASSWORD
+              value: 1YloZi2W4NnMDPNHVtZhzhx8JYEmeuxQ7AOMRN9a
+          envFrom:
+          ports:
+            - name: minio-api
+              containerPort: 9000
+              protocol: TCP
+            - name: minio-console
+              containerPort: 9001
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /minio/health/live
+              port: minio-api
+              scheme: "HTTP"
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 5
+          readinessProbe:
+            tcpSocket:
+              port: minio-api
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 1
+            successThreshold: 1
+            failureThreshold: 5
+          resources:
+            limits:
+              cpu: 375m
+              ephemeral-storage: 2Gi
+              memory: 384Mi
+            requests:
+              cpu: 250m
+              ephemeral-storage: 50Mi
+              memory: 256Mi
+          volumeMounts:
+            - name: empty-dir
+              mountPath: /tmp
+              subPath: tmp-dir
+            - name: empty-dir
+              mountPath: /opt/bitnami/minio/tmp
+              subPath: app-tmp-dir
+            - name: empty-dir
+              mountPath: /.mc
+              subPath: app-mc-dir
+            - name: data
+              mountPath: /bitnami/minio/data
+      volumes:
+        - name: empty-dir
+          emptyDir: {}
+        - name: data
+          persistentVolumeClaim:
+            claimName: testing-minio
+---
+# Source: imageserver/charts/processingserver/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: testing-processingserver
+  namespace: hazimani
+  labels:
+    app.kubernetes.io/name: processingserver
+    helm.sh/chart: processingserver-0.1.0
+    app.kubernetes.io/instance: testing
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/version: "0.1.0"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: processingserver
+      app.kubernetes.io/instance: testing
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: processingserver
+        app.kubernetes.io/instance: testing
+    spec:
+      
+      securityContext:
+        {}
+      enableServiceLinks: false
+      containers:
+        - name: processingserver
+          securityContext:
+            {}
+          image: ttl.sh/processingserver:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: DAMAE_APP__CACHE_DIR
+              value: "/data/destra/slides"
+            - name: DAMAE_CACHE__DIR
+              value: "/tmp/cache"
+            - name: DAMAE_CACHE__SIZE
+              value: "50"
+            - name: DAMAE_IMAGESERVER__URL
+              value: "http://testing-imageserver"
+            - name: DAMAE_LOGGING__FILENAME
+              value: ""
+            - name: DAMAE_LOGGING__LEVEL
+              value: "INFO"
+          volumeMounts:
+            - mountPath: /data/destra/slides
+              name: cache
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /v0/status
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 30
+            timeoutSeconds: 1
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /v0/status
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            timeoutSeconds: 1
+            successThreshold: 1
+            failureThreshold: 3
+          resources:
+            limits:
+              memory: 1Gi
+            requests:
+              cpu: 500m
+              memory: 1Gi
+      volumes:
+        - name: cache
+          persistentVolumeClaim:
+            claimName: testing-cache

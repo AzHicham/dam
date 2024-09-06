@@ -1,0 +1,66 @@
+global:
+  # -- global images registry
+  imageRegistry:
+  # -- global images pull secrets
+  imagePullSecrets: []
+
+# persistence
+persistence:
+  cache:
+    # -- (bool) whether persist slides data ; should always be true
+    enabled: true
+    # -- storage class
+    storageClass: ""
+    # -- access modes that should be `ReadWriteMany`
+    accessModes:
+      - ReadWriteOnce
+    # -- size
+    size: 30Gi
+    selector: {}
+
+minio:
+  persistence:
+    enabled: true
+  pdb:
+    create: false
+  networkPolicy:
+    enabled: false
+  provisioning:
+    networkPolicy:
+      enabled: false
+  disableWebUI: false
+  defaultBuckets: "image"
+  extraEnvVars:
+    - name: MINIO_ROOT_USER
+      value: WcZkHqodv1fffytkLe2a
+    - name: MINIO_ROOT_PASSWORD
+      value: 1YloZi2W4NnMDPNHVtZhzhx8JYEmeuxQ7AOMRN9a
+
+imageserver:
+  enable: true
+  settings:
+    DAMAE_CACHE__DIR: "/tmp/cache"
+    DAMAE_LOGGING__LEVEL: "INFO"
+    DAMAE_MINIO__URL: '{{ .Release.Name }}-minio:9000'
+    DAMAE_MINIO__BUCKET: "image"
+    DAMAE_MINIO__ACCESS_KEY: WcZkHqodv1fffytkLe2a
+    DAMAE_MINIO__SECRET_KEY: 1YloZi2W4NnMDPNHVtZhzhx8JYEmeuxQ7AOMRN9a
+  persistence:
+    enabled: true
+    size: 30Gi
+    accessModes:
+      - ReadWriteOnce
+    #existingClaim: '{{ .Release.Name }}-deeplabs-cache'
+
+processingserver:
+  enable: true
+  settings:
+    DAMAE_CACHE__DIR: "/tmp/cache"
+    DAMAE_LOGGING__LEVEL: "INFO"
+    DAMAE_IMAGESERVER__URL: http://{{ .Release.Name }}-imageserver
+  persistence: # Enable cache persistence
+    enabled: true
+    size: 30Gi
+    accessModes:
+      - ReadWriteOnce
+    #existingClaim: '{{ .Release.Name }}-deeplabs-cache'

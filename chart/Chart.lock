@@ -1,0 +1,15 @@
+dependencies:
+- name: common
+  repository: https://charts.bitnami.com/bitnami
+  version: 2.22.0
+- name: minio
+  repository: https://charts.bitnami.com/bitnami
+  version: 14.7.5
+- name: imageserver
+  repository: file://../services/imageserver/chart
+  version: 0.1.0
+- name: processingserver
+  repository: file://../services/processingserver/chart
+  version: 0.1.0
+digest: sha256:d0ab73e04c029fbc0243db47a471413dc5a7bcb569eadf1b46a9267cee5c0e90
+generated: "2024-09-07T19:12:36.073864418+02:00"
